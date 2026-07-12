@@ -1,7 +1,6 @@
 package com.dev.org.controller;
 
 import com.dev.org.domain.User;
-import com.dev.org.mapper.NotificationResponseMapper;
 import com.dev.org.model.NotificationResponse;
 import com.dev.org.model.NotificationStreamRequest;
 import com.dev.org.service.NotificationListener;
@@ -19,13 +18,9 @@ import reactor.core.publisher.Flux;
 public class NotificationStreamController {
 
     private final NotificationListener notificationListener;
-    private final NotificationResponseMapper notificationResponseMapper;
 
-    public NotificationStreamController(
-            NotificationListener notificationListener,
-            NotificationResponseMapper notificationResponseMapper) {
+    public NotificationStreamController(NotificationListener notificationListener) {
         this.notificationListener = notificationListener;
-        this.notificationResponseMapper = notificationResponseMapper;
     }
 
     @PostMapping(path = "/stream", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -37,7 +32,6 @@ public class NotificationStreamController {
                 .build();
 
         return notificationListener.listen(user)
-                .map(notificationResponseMapper::toResponse)
                 .map(
                         notification ->
                                 ServerSentEvent.<NotificationResponse>builder()

@@ -5,6 +5,8 @@ import com.dev.org.domain.Notification;
 import com.dev.org.domain.User;
 import com.dev.org.event.NotificationEvent;
 import com.dev.org.mapper.NotificationEventMapper;
+import com.dev.org.mapper.NotificationResponseMapper;
+import com.dev.org.model.NotificationResponse;
 import java.util.List;
 import java.util.Collections;
 import java.util.Set;
@@ -24,11 +26,12 @@ public class RedisNotificationListener implements NotificationListener {
 
     private static final Logger log = LoggerFactory.getLogger(RedisNotificationListener.class);
 
-    private final Flux<Notification> notificationFlux;
+    private final Flux<NotificationDelivery> notificationFlux;
 
     public RedisNotificationListener(
             ReactiveRedisConnectionFactory connectionFactory,
             NotificationEventMapper notificationEventMapper,
+            NotificationResponseMapper notificationResponseMapper,
             ChannelTopic notificationChannelTopic,
             RedisSerializationContext.SerializationPair<String> notificationChannelSerializationPair,
             RedisSerializationContext.SerializationPair<NotificationEvent>
@@ -44,7 +47,8 @@ public class RedisNotificationListener implements NotificationListener {
                                                 notificationChannelSerializationPair,
                                                 notificationEventSerializationPair)
                                         .map(ReactiveSubscription.Message::getMessage)
-                                        .map(notificationEventMapper::toDomain),
+                                        .map(notificationEventMapper::toDomain)
+                                        .map(notification -> toDelivery(notification, notificationResponseMapper)),
                                 ReactiveRedisMessageListenerContainer::destroyLater))
                 .doOnError(error -> log.error("Redis notification listener stopped", error))
                 .onErrorResume(error -> Flux.empty())
@@ -53,20 +57,32 @@ public class RedisNotificationListener implements NotificationListener {
     }
 
     @Override
-    public Flux<Notification> listen(User user) {
+    public Flux<NotificationResponse> listen(User user) {
         return notificationFlux
-                .filter(notification -> shouldDeliver(notification, user))
+                .filter(notificationDelivery -> shouldDeliver(notificationDelivery, user))
+                .map(NotificationDelivery::getResponse)
                 .onBackpressureLatest();
     }
 
-    private boolean shouldDeliver(Notification notification, User user) {
-        if (notification.getAudienceType() == AudienceType.GLOBAL) {
+    private NotificationDelivery toDelivery(
+            Notification notification, NotificationResponseMapper notificationResponseMapper) {
+        return NotificationDelivery.builder()
+                .audienceType(notification.getAudienceType())
+                .targets(notification.getTargets())
+                .response(notificationResponseMapper.toResponse(notification))
+                .build();
+    }
+
+    private boolean shouldDeliver(NotificationDelivery notificationDelivery, User user) {
+        if (notificationDelivery.getAudienceType() == AudienceType.GLOBAL) {
             return true;
         }
 
         Set<String> targets =
-                notification.getTargets() == null ? Collections.emptySet() : notification.getTargets();
-        if (notification.getAudienceType() == AudienceType.USER) {
+                notificationDelivery.getTargets() == null
+                        ? Collections.emptySet()
+                        : notificationDelivery.getTargets();
+        if (notificationDelivery.getAudienceType() == AudienceType.USER) {
             return user.getId() != null && targets.contains(user.getId());
         }
 
