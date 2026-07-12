@@ -1,180 +1,238 @@
 
 
-# Spring Boot Production-Grade Template
+# WebFlux Notification Server
 
-This repository provides a **fully production-ready Spring Boot template** designed for teams who want to bootstrap new microservices with consistent standards, quality, and best practices already built in.
+Reactive notification service built with Spring Boot WebFlux, R2DBC, Redis Pub/Sub, and Server-Sent Events.
 
-Use this template to avoid repeating setup work for every new service and to ensure all microservices follow the same structure, coding style, observability, logging, and tooling.
+This service supports:
 
----
+- creating notifications over HTTP
+- storing notifications in Postgres
+- publishing notification events to Redis
+- streaming notifications to connected clients over SSE
+- filtering streamed notifications by user, role, or global audience
 
-## 🚀 Purpose of This Template
+## Stack
 
-This template is meant to help developers:
+- Java 21
+- Spring Boot
+- Spring WebFlux
+- Spring Data R2DBC
+- Spring Data Redis Reactive
+- Postgres
+- Redis
+- OpenAPI Generator
+- Docker Compose
 
-- Quickly start new Spring Boot microservices
-- Maintain consistent project structure and configurations
-- Enforce strict code quality from day one
-- Provide ready‑to‑use logging, tracing, Swagger, and runtime configs
-- Bootstrap clean environments for local development and production
+## Local dependencies
 
-Any developer should be able to clone this repo, rename the package, update the service name, and immediately start building business features — without worrying about boilerplate setup.
+The service expects these local dependencies:
 
----
+- Postgres on `localhost:5432`
+- Redis on `localhost:6379`
 
-## 📦 What's Included
+The repository includes `compose.yaml` for both.
 
-### ✅ Production-Ready Dependencies
-- Spring Boot Actuator
-- Validation (Jakarta)
-- Flyway DB migrations
-- Logstash JSON logging encoder
-- H2 for local development
+Before starting local infrastructure, make sure you have a Docker runtime available and running, for example:
 
-### ✅ Static Code Quality (Strict Mode)
-Configured to **fail the build on violations**:
-- Spotless (Google Java Format)
-- Checkstyle (Google Rules + custom anti-patterns)
-- PMD (custom ruleset)
-- SpotBugs (max effort)
-- `.editorconfig` included
+- Colima
+- Docker Desktop
 
-### ✅ Runtime & Framework Configuration
-- Configurable base context path
-- Virtual threads enabled (Java 21+)
-- Database configs split by profile
-- JPA & Hibernate tuned for production safety
-- Dynamic service name binding to Logback
-- Pre‑wired application.yml structure
+## Start local infrastructure
 
-### ✅ Developer Experience
-- Global CORS configuration (works with/without Spring Security)
-- Ready-to-use `CorsConfig`
-- Simple `HelloController` (once you add Step 3)
-- Swagger (if enabled in later steps)
-
-### ✅ Logging & Observability
-- Async Logback JSON logs
-- MDC trace & span identifiers
-- Structured log format compatible with ELK/Loki/Cloud solutions
-
----
-
-## 🧩 Project Structure (Standardized)
-
-```
-src/
- └── main/
-     ├── java/com/example/app
-     │     ├── Application.java
-     │     ├── config/
-     │     │     └── CorsConfig.java
-     │     ├── controller/
-     │     ├── service/
-     │     ├── repository/
-     │     └── model/
-     └── resources/
-           ├── application.yml
-           ├── logback-spring.xml
-           ├── db/migration/ (Flyway)
-           └── static/
-```
-
----
-
-## 🛠 How to Use This Template
-
-### 1️⃣ Create a New Project From This Template
-
-**Option A — GitHub Template**
-1. Click **Use this template**
-2. Create a new repository from it
-3. Clone your new service repo
-
-**Option B — Manual Clone**
 ```bash
-git clone https://github.com/YOUR_ORG/springboot-prod-template new-service
-cd new-service
-rm -rf .git
-git init
+docker-compose up -d postgres redis
 ```
 
----
+Check running containers:
 
-### 2️⃣ Update Package & Service Name
-
-**Rename package (IntelliJ recommended):**
-`com.dev.org` → Your org + service name
-
-**Update service name in:**
-- `application.yml` (`spring.application.name`)
-- `logback-spring.xml` (dynamic lookup already supported)
-
----
-
-### 3️⃣ Verify Template Baseline (Required)
-Run:
 ```bash
-./gradlew clean build
+docker-compose ps
+```
+
+## Run the application
+
+```bash
 ./gradlew bootRun
 ```
 
-Check:
-- Build is **successful**
-- App runs with no errors
-- Health endpoint is UP:
-  ```
-  http://localhost:8080/actuator/health
-  ```
+Base URL:
 
----
-
-## 🧪 Quality Gates
-
-Every commit runs:
-```bash
-./gradlew clean check
+```text
+http://localhost:8080/api
 ```
 
-Build fails if:
-- Formatting is incorrect (Spotless)
-- Checkstyle rules violated
-- PMD rules violated
-- SpotBugs finds problems
+## Build and test
 
-This ensures all microservices built from this template stay clean and consistent.
+```bash
+./gradlew openApiGenerate compileJava test --no-daemon
+```
 
----
+## OpenAPI and Swagger
 
-## 🎯 When to Use This Template
+OpenAPI spec:
 
-Use this template when:
-- Starting a new microservice
-- Spinning up prototypes
-- Building production-ready backend services
-- Wanting consistent patterns across services
-- Reducing setup/boilerplate time
+```text
+src/main/resources/openapi/open-api-swagger.yaml
+```
 
----
+Swagger UI:
 
-## 🎉 Contributing to This Template
+```text
+http://localhost:8080/api/docs
+```
 
-If improving:
-- Add a new step into `project_setup.md`
-- Ensure TL;DR rules are followed
-- Confirm build/run/health checks pass
-- Commit with clear step reference
+OpenAPI JSON:
 
----
+```text
+http://localhost:8080/api/api-docs
+```
 
-## 📄 License
+## API overview
 
-This template is open for your organization or team to extend and evolve.
+### Create notification
 
----
+`POST /api/notifications`
 
-## 📬 Need Help?
+Example request:
 
-Feel free to open issues, suggest improvements, or evolve this template for your use-case.
+```bash
+curl -X POST http://localhost:8080/api/notifications \
+  -H 'Content-Type: application/json' \
+  --data '{
+    "title": "System Maintenance",
+    "message": "Planned maintenance starts at 10 PM UTC.",
+    "type": "MAINTENANCE",
+    "priority": "HIGH",
+    "audienceType": "ROLE",
+    "severity": "INFO",
+    "targets": ["OPS", "ADMIN"]
+  }'
+```
 
-Happy building! 🚀
+Behavior:
+
+- notification is stored in Postgres
+- `status` defaults to `ACTIVE`
+- `expiresAt` defaults to `createdAt + 15 days`
+- created notification is published to Redis
+
+### Stream notifications over SSE
+
+`POST /api/notifications/stream`
+
+Example request:
+
+```bash
+curl -N -X POST http://localhost:8080/api/notifications/stream \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: text/event-stream' \
+  --data '{
+    "id": "user-123",
+    "roles": ["OPS", "ADMIN"]
+  }'
+```
+
+Example SSE event:
+
+```text
+event: notification
+data: {"id":"6","title":"SSE Smoke Test","message":"hello from redis",...}
+```
+
+## Delivery rules
+
+Notifications are delivered according to `audienceType`:
+
+- `GLOBAL`
+  - sent to every connected subscriber
+
+- `USER`
+  - sent when the connected user id exists in `targets`
+
+- `ROLE`
+  - sent when the connected user has at least one role present in `targets`
+
+## Event flow
+
+End-to-end flow:
+
+1. client calls `POST /api/notifications`
+2. service stores notification in Postgres
+3. service maps notification to `NotificationEvent`
+4. event is published to Redis channel configured by `app.redis.notification-channel`
+5. listener consumes Redis pub/sub events
+6. listener maps each event once to outbound `NotificationResponse`
+7. matching SSE subscribers receive the response payload
+
+## Redis design
+
+Redis Pub/Sub uses a dedicated event contract:
+
+- `NotificationEvent`
+
+This keeps Redis payloads decoupled from:
+
+- domain objects
+- API response models
+
+Redis serialization is configured centrally in:
+
+```text
+src/main/java/com/dev/org/config/RedisConfiguration.java
+```
+
+## Important implementation notes
+
+- Redis subscription is lazy and only becomes active when clients subscribe to the SSE stream
+- SSE fanout precomputes `NotificationResponse` once per event to reduce repeated mapping work
+- tests do not require a live Redis server for `contextLoads()`
+
+## Useful endpoints
+
+- Health
+
+```text
+http://localhost:8080/actuator/health
+```
+
+- Swagger UI
+
+```text
+http://localhost:8080/api/docs
+```
+
+- OpenAPI JSON
+
+```text
+http://localhost:8080/api/api-docs
+```
+
+## Project layout
+
+```text
+src/main/java/com/dev/org/
+  config/
+  controller/
+  domain/
+  entity/
+  event/
+  mapper/
+  repository/
+  service/
+
+src/main/resources/
+  application.yml
+  openapi/
+  schema.sql
+```
+
+## Notes for local troubleshooting
+
+If SSE or Redis publishing fails with connection errors, verify Redis is running:
+
+```bash
+docker-compose ps
+```
+
+If Swagger does not reflect the latest code, restart the running app process and refresh `/api/api-docs`.
