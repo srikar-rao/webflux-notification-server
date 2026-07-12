@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @Tag("integration")
-@SpringBootTest
+@SpringBootTest(properties = "management.health.redis.enabled=false")
 class ApplicationTests {
 
     @Test

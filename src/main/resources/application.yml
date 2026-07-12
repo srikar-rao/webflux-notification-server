@@ -26,6 +26,10 @@ spring:
           connect-timeout: 30s
           read-timeout: 30s
 
+  sql:
+    init:
+      mode: always
+
   # ===== JACKSON CONFIGURATION =====
   jackson:
     time-zone: UTC
@@ -93,6 +97,8 @@ springdoc:
 app:
   cors:
     allowed-origins: "*"
+  redis:
+    notification-channel: notifications.created
 
 logging:
   level:

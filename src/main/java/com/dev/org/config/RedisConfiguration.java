@@ -1,0 +1,26 @@
+package com.dev.org.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
+import org.springframework.data.redis.serializer.RedisSerializationContext;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
+
+@Configuration
+public class RedisConfiguration {
+
+    @Bean
+    public ReactiveStringRedisTemplate reactiveStringRedisTemplate(
+            ReactiveRedisConnectionFactory connectionFactory) {
+        RedisSerializationContext<String, String> serializationContext =
+                RedisSerializationContext.<String, String>newSerializationContext(
+                                new StringRedisSerializer())
+                        .key(new StringRedisSerializer())
+                        .value(new StringRedisSerializer())
+                        .hashKey(new StringRedisSerializer())
+                        .hashValue(new StringRedisSerializer())
+                        .build();
+        return new ReactiveStringRedisTemplate(connectionFactory, serializationContext);
+    }
+}

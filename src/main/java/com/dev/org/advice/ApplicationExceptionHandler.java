@@ -23,6 +23,17 @@ public class ApplicationExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(ApplicationExceptionHandler.class);
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ProblemDetail handleIllegalArgumentException(
+            IllegalArgumentException ex, ServerWebExchange exchange) {
+        var problemDetail = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+        problemDetail.setDetail(ex.getMessage());
+        problemDetail.setProperty("path", exchange.getRequest().getPath().value());
+
+        log.error("Invalid request", ex);
+        return problemDetail;
+    }
+
     /**
      * Handles custom unchecked ApplicationException.
      */
