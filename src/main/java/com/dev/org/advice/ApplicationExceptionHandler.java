@@ -1,18 +1,17 @@
 package com.dev.org.advice;
 
 import com.dev.org.exception.ApplicationException;
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
-import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.bind.support.WebExchangeBindException;
+import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.ServerWebInputException;
 
 /**
  * Global exception handler for the application. Handles unchecked exceptions and
@@ -28,12 +27,11 @@ public class ApplicationExceptionHandler {
      * Handles custom unchecked ApplicationException.
      */
     @ExceptionHandler(ApplicationException.class)
-    public ProblemDetail handleApplicationException(
-            ApplicationException ex, HttpServletRequest request) {
+    public ProblemDetail handleApplicationException(ApplicationException ex, ServerWebExchange exchange) {
         var problemDetail = ProblemDetail.forStatus(HttpStatus.INTERNAL_SERVER_ERROR);
         problemDetail.setDetail(ex.getMessage());
 
-        problemDetail.setProperty("path", request.getRequestURI());
+        problemDetail.setProperty("path", exchange.getRequest().getPath().value());
 
         log.error("Application exception", ex);
         return problemDetail;
@@ -42,15 +40,15 @@ public class ApplicationExceptionHandler {
     /**
      * Handles Spring's @Valid validation failures (400 Bad Request).
      */
-    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ExceptionHandler(WebExchangeBindException.class)
     public ProblemDetail handleValidationException(
-            MethodArgumentNotValidException ex, HttpServletRequest request) {
+            WebExchangeBindException ex, ServerWebExchange exchange) {
         Map<String, String> fieldErrors = new HashMap<>();
         ex.getBindingResult()
-                .getAllErrors()
+                .getFieldErrors()
                 .forEach(
                         error -> {
-                            String fieldName = ((FieldError) error).getField();
+                            String fieldName = error.getField();
                             String errorMessage = error.getDefaultMessage();
                             fieldErrors.put(fieldName, errorMessage);
                         });
@@ -58,7 +56,7 @@ public class ApplicationExceptionHandler {
         var problemDetail = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
         problemDetail.setDetail("Validation failed");
         problemDetail.setProperty("fieldErrors", fieldErrors);
-        problemDetail.setProperty("path", request.getRequestURI());
+        problemDetail.setProperty("path", exchange.getRequest().getPath().value());
 
         log.error("Validation failed");
 
@@ -68,19 +66,13 @@ public class ApplicationExceptionHandler {
     /**
      * Handles type mismatch in request parameters (400 Bad Request).
      */
-    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ProblemDetail handleTypeMismatch(
-            MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
-        Class<?> requiredType = ex.getRequiredType();
-        String expectedType = requiredType != null ? requiredType.getSimpleName() : "unknown";
-        String message =
-                String.format(
-                        "Invalid value '%s' for parameter '%s'. Expected type: %s",
-                        ex.getValue(), ex.getName(), expectedType);
+    @ExceptionHandler(ServerWebInputException.class)
+    public ProblemDetail handleTypeMismatch(ServerWebInputException ex, ServerWebExchange exchange) {
+        String reason = ex.getReason() != null ? ex.getReason() : "Invalid request input";
 
         var problemDetail = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
-        problemDetail.setDetail(message);
-        problemDetail.setProperty("path", request.getRequestURI());
+        problemDetail.setDetail(reason);
+        problemDetail.setProperty("path", exchange.getRequest().getPath().value());
 
         log.error("Type mismatch");
 
@@ -91,10 +83,10 @@ public class ApplicationExceptionHandler {
      * Handles all other uncaught exceptions (500 Internal Server Error).
      */
     @ExceptionHandler(Exception.class)
-    public ProblemDetail handleGenericException(Exception ex, HttpServletRequest request) {
+    public ProblemDetail handleGenericException(Exception ex, ServerWebExchange exchange) {
         var problemDetail = ProblemDetail.forStatus(HttpStatus.INTERNAL_SERVER_ERROR);
         problemDetail.setDetail("An unexpected error occurred. Please try again later.");
-        problemDetail.setProperty("path", request.getRequestURI());
+        problemDetail.setProperty("path", exchange.getRequest().getPath().value());
 
         log.error("Unhandled exception", ex);
 

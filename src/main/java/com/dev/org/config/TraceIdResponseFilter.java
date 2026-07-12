@@ -2,22 +2,20 @@ package com.dev.org.config;
 
 import io.micrometer.tracing.Span;
 import io.micrometer.tracing.Tracer;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.WebFilter;
+import org.springframework.web.server.WebFilterChain;
+import reactor.core.publisher.Mono;
 
 /**
  * Filter to automatically inject the current Trace ID into all HTTP response headers.
  */
 @Component
 @RequiredArgsConstructor
-public class TraceIdResponseFilter extends OncePerRequestFilter {
+public class TraceIdResponseFilter implements WebFilter {
 
     private final ObjectProvider<Tracer> tracerProvider;
 
@@ -27,10 +25,7 @@ public class TraceIdResponseFilter extends OncePerRequestFilter {
     // private static final String B3_TRACE_ID_HEADER = "X-B3-TraceId";
 
     @Override
-    protected void doFilterInternal(
-            HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
-
+    public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         Tracer tracer = tracerProvider.getIfAvailable();
         if (tracer != null) {
             Span currentSpan = tracer.currentSpan();
@@ -38,13 +33,13 @@ public class TraceIdResponseFilter extends OncePerRequestFilter {
                 String traceId = currentSpan.context().traceId();
 
                 // Modern custom trace header
-                response.setHeader(TRACE_ID_HEADER, traceId);
+                exchange.getResponse().getHeaders().set(TRACE_ID_HEADER, traceId);
 
                 // Legacy B3 header
-                // response.setHeader(B3_TRACE_ID_HEADER, traceId);
+                // exchange.getResponse().getHeaders().set(B3_TRACE_ID_HEADER, traceId);
             }
         }
 
-        filterChain.doFilter(request, response);
+        return chain.filter(exchange);
     }
 }
