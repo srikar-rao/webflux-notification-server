@@ -3,17 +3,18 @@ package com.dev.org.service;
 import com.dev.org.domain.AudienceType;
 import com.dev.org.domain.Notification;
 import com.dev.org.domain.User;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.dev.org.event.NotificationEvent;
+import com.dev.org.mapper.NotificationEventMapper;
+import java.util.List;
 import java.util.Collections;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
 import org.springframework.data.redis.connection.ReactiveSubscription;
 import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.data.redis.listener.ReactiveRedisMessageListenerContainer;
+import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -27,16 +28,23 @@ public class RedisNotificationListener implements NotificationListener {
 
     public RedisNotificationListener(
             ReactiveRedisConnectionFactory connectionFactory,
-            ObjectMapper objectMapper,
-            @Value("${app.redis.notification-channel}") String channelName) {
+            NotificationEventMapper notificationEventMapper,
+            ChannelTopic notificationChannelTopic,
+            RedisSerializationContext.SerializationPair<String> notificationChannelSerializationPair,
+            RedisSerializationContext.SerializationPair<NotificationEvent>
+                    notificationEventSerializationPair) {
+
         this.notificationFlux = Flux.defer(
                         () -> Flux.usingWhen(
                                 Mono.fromSupplier(
                                         () -> new ReactiveRedisMessageListenerContainer(
                                                 connectionFactory)),
-                                listenerContainer -> listenerContainer.receive(new ChannelTopic(channelName))
+                                listenerContainer -> listenerContainer.receive(
+                                                List.of(notificationChannelTopic),
+                                                notificationChannelSerializationPair,
+                                                notificationEventSerializationPair)
                                         .map(ReactiveSubscription.Message::getMessage)
-                                        .flatMap(payload -> deserialize(objectMapper, payload)),
+                                        .map(notificationEventMapper::toDomain),
                                 ReactiveRedisMessageListenerContainer::destroyLater))
                 .doOnError(error -> log.error("Redis notification listener stopped", error))
                 .onErrorResume(error -> Flux.empty())
@@ -51,16 +59,6 @@ public class RedisNotificationListener implements NotificationListener {
                 .onBackpressureLatest();
     }
 
-    private Mono<Notification> deserialize(ObjectMapper objectMapper, String payload) {
-        return Mono.fromCallable(() -> objectMapper.readValue(payload, Notification.class))
-                .onErrorResume(
-                        JsonProcessingException.class,
-                        ex -> {
-                            log.error("Unable to deserialize Redis notification payload", ex);
-                            return Mono.empty();
-                        });
-    }
-
     private boolean shouldDeliver(Notification notification, User user) {
         if (notification.getAudienceType() == AudienceType.GLOBAL) {
             return true;
@@ -73,6 +71,6 @@ public class RedisNotificationListener implements NotificationListener {
         }
 
         Set<String> roles = user.getRoles() == null ? Collections.emptySet() : user.getRoles();
-        return roles.stream().anyMatch(targets::contains);
+        return !Collections.disjoint(roles, targets);
     }
 }
