@@ -1,6 +1,6 @@
 package com.dev.org.config;
 
-import com.dev.org.event.NotificationEvent;
+import com.dev.org.domain.Notification;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -29,25 +29,25 @@ public class RedisConfiguration {
     }
 
     @Bean
-    public RedisSerializationContext.SerializationPair<NotificationEvent>
-            notificationEventSerializationPair(ObjectMapper objectMapper) {
+    public RedisSerializationContext.SerializationPair<Notification> notificationSerializationPair(
+            ObjectMapper objectMapper) {
         return RedisSerializationContext.SerializationPair.fromSerializer(
-                new Jackson2JsonRedisSerializer<>(objectMapper.copy(), NotificationEvent.class));
+                new Jackson2JsonRedisSerializer<>(objectMapper.copy(), Notification.class));
     }
 
     @Bean
-    public ReactiveRedisTemplate<String, NotificationEvent> reactiveNotificationRedisTemplate(
+    public ReactiveRedisTemplate<String, Notification> reactiveNotificationRedisTemplate(
             ReactiveRedisConnectionFactory connectionFactory,
-            RedisSerializationContext.SerializationPair<NotificationEvent>
-                    notificationEventSerializationPair) {
+            RedisSerializationContext.SerializationPair<Notification>
+                    notificationSerializationPair) {
 
-        RedisSerializationContext<String, NotificationEvent> serializationContext =
-                RedisSerializationContext.<String, NotificationEvent>newSerializationContext(
+        RedisSerializationContext<String, Notification> serializationContext =
+                RedisSerializationContext.<String, Notification>newSerializationContext(
                                 new StringRedisSerializer())
                         .key(new StringRedisSerializer())
-                        .value(notificationEventSerializationPair)
+                        .value(notificationSerializationPair)
                         .hashKey(new StringRedisSerializer())
-                        .hashValue(notificationEventSerializationPair)
+                        .hashValue(notificationSerializationPair)
                         .build();
         return new ReactiveRedisTemplate<>(connectionFactory, serializationContext);
     }
