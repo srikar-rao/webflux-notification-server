@@ -1,5 +1,6 @@
 package com.dev.org.domain;
 
+import java.util.Collections;
 import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,5 +13,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class User {
     private String id;
-    private Set<String> roles;
+    private Set<String> roles = Collections.emptySet();
 }

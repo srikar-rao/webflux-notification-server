@@ -117,7 +117,7 @@ components:
       required: [id]
       properties:
         id: {type: string, example: "user-123"}
-        roles: {type: array, items: {type: string}, nullable: true, uniqueItems: true, example: ["OPS", "ADMIN"]}
+        roles: {type: array, items: {type: string}, nullable: true, uniqueItems: true, default: [], example: ["OPS", "ADMIN"]}
     NotificationResponse:
       type: object
       required: [id, title, message, type, priority, audienceType, severity, status, createdAt, updatedAt]

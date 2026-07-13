@@ -4,10 +4,8 @@ import com.dev.org.domain.Notification;
 import com.dev.org.domain.User;
 import com.dev.org.mapper.NotificationResponseMapper;
 import com.dev.org.model.NotificationResponse;
-import com.dev.org.model.NotificationResponse.AudienceTypeEnum;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
@@ -75,19 +73,10 @@ public class RedisNotificationListener implements NotificationListener {
     }
 
     private boolean shouldDeliver(NotificationResponse notificationResponse, User user) {
-        if (notificationResponse.getAudienceType() == AudienceTypeEnum.GLOBAL) {
-            return true;
-        }
-
-        Set<String> targets =
-                notificationResponse.getTargets() == null
-                        ? Collections.emptySet()
-                        : notificationResponse.getTargets();
-        if (notificationResponse.getAudienceType() == AudienceTypeEnum.USER) {
-            return user.getId() != null && targets.contains(user.getId());
-        }
-
-        Set<String> roles = user.getRoles() == null ? Collections.emptySet() : user.getRoles();
-        return !Collections.disjoint(roles, targets);
+        return switch (notificationResponse.getAudienceType()) {
+            case GLOBAL -> true;
+            case USER -> notificationResponse.getTargets().contains(user.getId());
+            case ROLE -> !Collections.disjoint(user.getRoles(), notificationResponse.getTargets());
+        };
     }
 }
