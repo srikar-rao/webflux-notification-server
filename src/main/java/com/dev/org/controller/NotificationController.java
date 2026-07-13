@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -36,8 +35,7 @@ public class NotificationController {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<ResponseEntity<NotificationResponse>> createNotification(
-            @RequestBody Mono<CreateNotificationRequest> createNotificationRequest,
-            ServerWebExchange exchange) {
+            @RequestBody Mono<CreateNotificationRequest> createNotificationRequest) {
         return createNotificationRequest
                 .map(notificationRequestMapper::toDomain)
                 .flatMap(notificationService::createNotification)
