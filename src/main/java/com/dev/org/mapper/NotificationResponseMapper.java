@@ -23,7 +23,7 @@ public class NotificationResponseMapper {
         response.setSeverity(NotificationResponse.SeverityEnum.fromValue(notification.getSeverity().name()));
         response.setStatus(NotificationResponse.StatusEnum.fromValue(notification.getStatus().name()));
         response.setTargets(
-                notification.getTargets() != null ? new ArrayList<>(notification.getTargets()) : null);
+                notification.getTargets() != null ? notification.getTargets() : null);
         response.setExpiresAt(
                 notification.getExpiresAt() != null
                         ? OffsetDateTime.ofInstant(notification.getExpiresAt(), ZoneOffset.UTC)
