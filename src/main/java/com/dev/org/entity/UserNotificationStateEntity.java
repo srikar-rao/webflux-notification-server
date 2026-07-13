@@ -1,7 +1,6 @@
 package com.dev.org.entity;
 
 import java.time.Instant;
-import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,32 +13,21 @@ import org.springframework.data.relational.core.mapping.Table;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table("notifications")
-public class NotificationEntity {
+@Table("user_notification_states")
+public class UserNotificationStateEntity {
     @Id private Long id;
 
-    private String title;
+    @Column("notification_id")
+    private String notificationId;
 
-    private String message;
+    @Column("user_id")
+    private String userId;
 
-    @Column("action_url")
-    private String actionUrl;
+    @Column("read_at")
+    private Instant readAt;
 
-    private String type;
-
-    private String priority;
-
-    @Column("audience_type")
-    private String audienceType;
-
-    private String severity;
-
-    private String status;
-
-    private Set<String> targets;
-
-    @Column("expires_at")
-    private Instant expiresAt;
+    @Column("dismissed_at")
+    private Instant dismissedAt;
 
     @Column("created_at")
     private Instant createdAt;

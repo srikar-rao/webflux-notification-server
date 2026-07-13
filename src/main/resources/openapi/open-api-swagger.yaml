@@ -64,6 +64,38 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/ProblemDetail'}
+  /user-notifications:
+    get:
+      tags: [User Notifications]
+      summary: Find all user notifications by userId and roles
+      operationId: findAllUserNotifications
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema: {type: string}
+          description: User ID to filter notifications
+        - name: roles
+          in: query
+          required: false
+          schema: {type: array, items: {type: string}}
+          description: User roles to filter notifications
+      responses:
+        '200':
+          description: User notifications found
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/UserNotificationStateResponse'}
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ProblemDetail'}
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ProblemDetail'}
 
 components:
   schemas:
@@ -101,6 +133,17 @@ components:
         status: {type: string, enum: [ACTIVE], example: ACTIVE}
         targets: {type: array, items: {type: string}, nullable: true, uniqueItems: true, example: ["OPS", "SUPPORT"]}
         expiresAt: {type: string, format: date-time, nullable: true}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+    UserNotificationStateResponse:
+      type: object
+      required: [id, notificationId, userId, createdAt, updatedAt]
+      properties:
+        id: {type: string, example: "01JZMWJ1KQ3S5N4Y1PEFAVX3R0"}
+        notificationId: {type: string, example: "notif-123"}
+        userId: {type: string, example: "user-123"}
+        readAt: {type: string, format: date-time, nullable: true}
+        dismissedAt: {type: string, format: date-time, nullable: true}
         createdAt: {type: string, format: date-time}
         updatedAt: {type: string, format: date-time}
     ProblemDetail:

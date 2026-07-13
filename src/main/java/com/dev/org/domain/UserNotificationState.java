@@ -22,4 +22,6 @@ public class UserNotificationState {
     private Instant dismissedAt;
 
     private Instant createdAt;
+
+    private Instant updatedAt;
 }
