@@ -18,7 +18,7 @@ CREATE INDEX IF NOT EXISTS idx_notifications_targets ON notifications USING GIN 
 
 CREATE TABLE IF NOT EXISTS user_notification_states (
     id BIGSERIAL PRIMARY KEY,
-    notification_id VARCHAR NOT NULL,
+    notification_id BIGINT NOT NULL,
     user_id VARCHAR NOT NULL,
     read_at TIMESTAMPTZ,
     dismissed_at TIMESTAMPTZ,

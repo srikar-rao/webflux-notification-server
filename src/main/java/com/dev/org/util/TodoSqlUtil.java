@@ -8,10 +8,10 @@ import org.springframework.stereotype.Component;
 @Getter
 @Component
 @PropertySource(
-        value = "classpath:sql/todo-queries-sql.yml",
+        value = "classpath:sql/notification-queries-sql.yml",
         factory = YamlPropertySourceFactory.class)
 public class TodoSqlUtil {
 
-    @Value("${get-all-todos}")
-    private String getAllTodosQuery;
+    @Value("${get-unread-notifications}")
+    private String getUnreadNotificationsQuery;
 }

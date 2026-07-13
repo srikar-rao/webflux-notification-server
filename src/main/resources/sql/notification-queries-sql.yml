@@ -1,0 +1,37 @@
+# Query to get unread notifications for a user (handles both assigned and unassigned)
+get-unread-notifications: |-
+  SELECT
+    n.id,
+    n.title,
+    n.message,
+    n.action_url,
+    n.type,
+    n.priority,
+    n.audience_type,
+    n.severity,
+    n.status,
+    n.targets,
+    n.expires_at,
+    n.created_at,
+    n.updated_at,
+    uns.id as state_id,
+    uns.user_id,
+    uns.read_at,
+    uns.dismissed_at
+  FROM notifications n
+  LEFT JOIN user_notification_states uns ON n.id = uns.notification_id AND uns.user_id = :userId
+  WHERE (
+    n.audience_type = 'GLOBAL'
+    OR (
+      n.audience_type = 'USER'
+      AND :userId = ANY(n.targets)
+    )
+    OR (
+      n.audience_type = 'ROLE'
+      AND n.targets && :userRoles::varchar[]
+    )
+  )
+  AND (n.expires_at IS NULL OR n.expires_at > NOW())
+  AND n.status = 'ACTIVE'
+  AND (uns.id IS NULL OR uns.read_at IS NULL)
+  ORDER BY n.created_at DESC

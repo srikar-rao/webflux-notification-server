@@ -67,8 +67,8 @@ paths:
   /user-notifications:
     get:
       tags: [User Notifications]
-      summary: Find all user notifications by userId and roles
-      operationId: findAllUserNotifications
+      summary: Find unread user notifications by userId and roles
+      operationId: findUnreadUserNotifications
       parameters:
         - name: userId
           in: query
@@ -82,10 +82,10 @@ paths:
           description: User roles to filter notifications
       responses:
         '200':
-          description: User notifications found
+          description: Unread user notifications found
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/UserNotificationStateResponse'}
+              schema: {type: array, items: {$ref: '#/components/schemas/UserNotificationQueryResponse'}}
         '400':
           description: Invalid request
           content:
@@ -146,6 +146,27 @@ components:
         dismissedAt: {type: string, format: date-time, nullable: true}
         createdAt: {type: string, format: date-time}
         updatedAt: {type: string, format: date-time}
+    UserNotificationQueryResponse:
+      type: object
+      required: [id, title, message, type, priority, audienceType, severity, status, createdAt, updatedAt]
+      properties:
+        id: {type: integer, format: int64, example: 1}
+        title: {type: string, example: "System Maintenance"}
+        message: {type: string, example: "Planned maintenance starts at 10 PM UTC."}
+        actionUrl: {type: string, example: "https://example.org/status", nullable: true}
+        type: {type: string, example: "MAINTENANCE"}
+        priority: {type: string, enum: [LOW, NORMAL, HIGH, CRITICAL], example: HIGH}
+        audienceType: {type: string, enum: [USER, ROLE, GLOBAL], example: ROLE}
+        severity: {type: string, enum: [INFO, FAILURE, SUCCESS], example: INFO}
+        status: {type: string, enum: [ACTIVE], example: ACTIVE}
+        targets: {type: array, items: {type: string}, nullable: true, uniqueItems: true, example: ["OPS", "SUPPORT"]}
+        expiresAt: {type: string, format: date-time, nullable: true}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+        stateId: {type: integer, format: int64, nullable: true, example: 1}
+        userId: {type: string, nullable: true, example: "user-123"}
+        readAt: {type: string, format: date-time, nullable: true}
+        dismissedAt: {type: string, format: date-time, nullable: true}
     ProblemDetail:
       type: object
       description: RFC 7807 Problem Details for error responses
