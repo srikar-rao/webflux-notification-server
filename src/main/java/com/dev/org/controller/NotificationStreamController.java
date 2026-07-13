@@ -23,15 +23,23 @@ public class NotificationStreamController {
         this.notificationListener = notificationListener;
     }
 
-    @PostMapping(path = "/stream", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(
+            path = "/stream",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<NotificationResponse>> streamNotifications(
             @RequestBody NotificationStreamRequest request) {
-        User user = User.builder()
-                .id(request.getId())
-                .roles(request.getRoles() != null ? new LinkedHashSet<>(request.getRoles()) : null)
-                .build();
+        User user =
+                User.builder()
+                        .id(request.getId())
+                        .roles(
+                                request.getRoles() != null
+                                        ? new LinkedHashSet<>(request.getRoles())
+                                        : null)
+                        .build();
 
-        return notificationListener.listen(user)
+        return notificationListener
+                .listen(user)
                 .map(
                         notification ->
                                 ServerSentEvent.<NotificationResponse>builder()

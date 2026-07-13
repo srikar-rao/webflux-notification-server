@@ -25,7 +25,8 @@ public class NotificationRequestMapper {
                 .audienceType(AudienceType.valueOf(request.getAudienceType().getValue()))
                 .severity(NotificationSeverity.valueOf(request.getSeverity().getValue()))
                 .targets(targets)
-                .expiresAt(request.getExpiresAt() != null ? request.getExpiresAt().toInstant() : null)
+                .expiresAt(
+                        request.getExpiresAt() != null ? request.getExpiresAt().toInstant() : null)
                 .build();
     }
 }

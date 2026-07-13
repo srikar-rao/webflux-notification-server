@@ -15,8 +15,7 @@ import org.springframework.data.relational.core.mapping.Table;
 @AllArgsConstructor
 @Table("notifications")
 public class NotificationEntity {
-    @Id
-    private Long id;
+    @Id private Long id;
 
     private String title;
 

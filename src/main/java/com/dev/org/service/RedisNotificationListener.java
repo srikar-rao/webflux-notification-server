@@ -7,8 +7,8 @@ import com.dev.org.event.NotificationEvent;
 import com.dev.org.mapper.NotificationEventMapper;
 import com.dev.org.mapper.NotificationResponseMapper;
 import com.dev.org.model.NotificationResponse;
-import java.util.List;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,27 +33,46 @@ public class RedisNotificationListener implements NotificationListener {
             NotificationEventMapper notificationEventMapper,
             NotificationResponseMapper notificationResponseMapper,
             ChannelTopic notificationChannelTopic,
-            RedisSerializationContext.SerializationPair<String> notificationChannelSerializationPair,
+            RedisSerializationContext.SerializationPair<String>
+                    notificationChannelSerializationPair,
             RedisSerializationContext.SerializationPair<NotificationEvent>
                     notificationEventSerializationPair) {
 
-        this.notificationFlux = Flux.defer(
-                        () -> Flux.usingWhen(
-                                Mono.fromSupplier(
-                                        () -> new ReactiveRedisMessageListenerContainer(
-                                                connectionFactory)),
-                                listenerContainer -> listenerContainer.receive(
-                                                List.of(notificationChannelTopic),
-                                                notificationChannelSerializationPair,
-                                                notificationEventSerializationPair)
-                                        .map(ReactiveSubscription.Message::getMessage)
-                                        .map(notificationEventMapper::toDomain)
-                                        .map(notification -> toDelivery(notification, notificationResponseMapper)),
-                                ReactiveRedisMessageListenerContainer::destroyLater))
-                .doOnError(error -> log.error("Redis notification listener stopped", error))
-                .onErrorResume(error -> Flux.empty())
-                .publish()
-                .refCount(1);
+        List<ChannelTopic> topics = List.of(notificationChannelTopic);
+        ReactiveRedisMessageListenerContainer listenerContainer =
+                new ReactiveRedisMessageListenerContainer(connectionFactory);
+        RedisSerializationContext.SerializationPair<String> channelPair =
+                notificationChannelSerializationPair;
+        RedisSerializationContext.SerializationPair<NotificationEvent> eventPair =
+                notificationEventSerializationPair;
+        NotificationResponseMapper responseMapper = notificationResponseMapper;
+        java.util.function.Function<Notification, NotificationDelivery> deliveryMapper =
+                notification -> toDelivery(notification, responseMapper);
+
+        this.notificationFlux =
+                Flux.defer(
+                                () ->
+                                        Flux.usingWhen(
+                                                Mono.fromSupplier(() -> listenerContainer),
+                                                container ->
+                                                        container
+                                                                .receive(
+                                                                        topics,
+                                                                        channelPair,
+                                                                        eventPair)
+                                                                .map(
+                                                                        ReactiveSubscription.Message
+                                                                                ::getMessage)
+                                                                .map(
+                                                                        notificationEventMapper
+                                                                                ::toDomain)
+                                                                .map(deliveryMapper),
+                                                ReactiveRedisMessageListenerContainer
+                                                        ::destroyLater))
+                        .doOnError(error -> log.error("Redis notification listener stopped", error))
+                        .onErrorResume(error -> Flux.empty())
+                        .publish()
+                        .refCount(1);
     }
 
     @Override

@@ -32,7 +32,9 @@ public class NotificationController {
         this.notificationResponseMapper = notificationResponseMapper;
     }
 
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<ResponseEntity<NotificationResponse>> createNotification(
             @RequestBody Mono<CreateNotificationRequest> createNotificationRequest,
             ServerWebExchange exchange) {

@@ -22,8 +22,10 @@ public class RedisConfiguration {
     }
 
     @Bean
-    public RedisSerializationContext.SerializationPair<String> notificationChannelSerializationPair() {
-        return RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer());
+    public RedisSerializationContext.SerializationPair<String>
+            notificationChannelSerializationPair() {
+        return RedisSerializationContext.SerializationPair.fromSerializer(
+                new StringRedisSerializer());
     }
 
     @Bean

@@ -38,7 +38,8 @@ public class ApplicationExceptionHandler {
      * Handles custom unchecked ApplicationException.
      */
     @ExceptionHandler(ApplicationException.class)
-    public ProblemDetail handleApplicationException(ApplicationException ex, ServerWebExchange exchange) {
+    public ProblemDetail handleApplicationException(
+            ApplicationException ex, ServerWebExchange exchange) {
         var problemDetail = ProblemDetail.forStatus(HttpStatus.INTERNAL_SERVER_ERROR);
         problemDetail.setDetail(ex.getMessage());
 
@@ -78,7 +79,8 @@ public class ApplicationExceptionHandler {
      * Handles type mismatch in request parameters (400 Bad Request).
      */
     @ExceptionHandler(ServerWebInputException.class)
-    public ProblemDetail handleTypeMismatch(ServerWebInputException ex, ServerWebExchange exchange) {
+    public ProblemDetail handleTypeMismatch(
+            ServerWebInputException ex, ServerWebExchange exchange) {
         String reason = ex.getReason() != null ? ex.getReason() : "Invalid request input";
 
         var problemDetail = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
