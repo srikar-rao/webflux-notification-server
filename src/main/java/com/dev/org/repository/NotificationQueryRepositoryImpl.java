@@ -17,10 +17,15 @@ public class NotificationQueryRepositoryImpl implements NotificationQueryReposit
 
     @Override
     public Flux<UserNotificationQueryDto> findUnreadNotifications(User user) {
+
+        java.util.List<String> allTargets = new java.util.ArrayList<>();
+        allTargets.add(user.getId());
+        allTargets.addAll(user.getRoles());
+
         return databaseClient
                 .sql(sqlUtil.getGetUnreadNotificationsQuery())
                 .bind("userId", user.getId())
-                .bind("userRoles", user.getRoles().toArray(new String[0]))
+                .bind("allTargets", allTargets.toArray(new String[0]))
                 .mapProperties(UserNotificationQueryDto.class)
                 .all();
     }

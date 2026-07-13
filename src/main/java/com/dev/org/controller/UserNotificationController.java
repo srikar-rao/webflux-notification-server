@@ -23,7 +23,7 @@ public class UserNotificationController {
     public Flux<UserNotificationQueryResponse> findUnreadUserNotifications(
             @RequestParam String userId, @RequestParam(required = false) Set<String> roles) {
         return notificationQueryService
-                .getUnreadNotifications(userId, roles)
+                .getUnreadNotifications(userId, roles != null ? roles : Set.of())
                 .map(mapper::toResponse);
     }
 }

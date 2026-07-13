@@ -105,3 +105,4 @@ logging:
     root: INFO
     com.dev.org: DEBUG
     org.springframework.web: INFO
+    org.springframework.r2dbc: DEBUG

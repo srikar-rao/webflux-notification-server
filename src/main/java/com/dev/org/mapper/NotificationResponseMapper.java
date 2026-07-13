@@ -1,9 +1,11 @@
 package com.dev.org.mapper;
 
 import com.dev.org.domain.Notification;
+import com.dev.org.domain.NotificationStatus;
 import com.dev.org.model.NotificationResponse;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.function.Function;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -17,23 +19,46 @@ public class NotificationResponseMapper {
         response.setActionUrl(notification.getActionUrl());
         response.setType(notification.getType());
         response.setPriority(
-                NotificationResponse.PriorityEnum.fromValue(notification.getPriority().name()));
+                mapEnum(
+                        notification.getPriority(),
+                        value -> NotificationResponse.PriorityEnum.fromValue(value.name())));
         response.setAudienceType(
-                NotificationResponse.AudienceTypeEnum.fromValue(
-                        notification.getAudienceType().name()));
+                mapEnum(
+                        notification.getAudienceType(),
+                        value -> NotificationResponse.AudienceTypeEnum.fromValue(value.name())));
         response.setSeverity(
-                NotificationResponse.SeverityEnum.fromValue(notification.getSeverity().name()));
-        response.setStatus(
-                NotificationResponse.StatusEnum.fromValue(notification.getStatus().name()));
+                mapEnum(
+                        notification.getSeverity(),
+                        value -> NotificationResponse.SeverityEnum.fromValue(value.name())));
+        response.setStatus(mapEnum(notification.getStatus(), this::mapStatus));
         response.setTargets(notification.getTargets() != null ? notification.getTargets() : null);
         response.setExpiresAt(
                 notification.getExpiresAt() != null
                         ? OffsetDateTime.ofInstant(notification.getExpiresAt(), ZoneOffset.UTC)
                         : null);
         response.setCreatedAt(
-                OffsetDateTime.ofInstant(notification.getCreatedAt(), ZoneOffset.UTC));
+                notification.getCreatedAt() != null
+                        ? OffsetDateTime.ofInstant(notification.getCreatedAt(), ZoneOffset.UTC)
+                        : null);
         response.setUpdatedAt(
-                OffsetDateTime.ofInstant(notification.getUpdatedAt(), ZoneOffset.UTC));
+                notification.getUpdatedAt() != null
+                        ? OffsetDateTime.ofInstant(notification.getUpdatedAt(), ZoneOffset.UTC)
+                        : null);
         return response;
+    }
+
+    private <E extends Enum<E>, R> R mapEnum(E value, Function<E, R> mapper) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            return mapper.apply(value);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private NotificationResponse.StatusEnum mapStatus(NotificationStatus status) {
+        return NotificationResponse.StatusEnum.fromValue(status.name());
     }
 }
