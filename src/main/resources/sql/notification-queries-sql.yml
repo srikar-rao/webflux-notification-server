@@ -24,9 +24,9 @@ get-unread-notifications: |-
   AND (n.expires_at IS NULL OR n.expires_at > NOW())
   AND n.status = 'ACTIVE'
   AND (uns.id IS NULL OR (uns.read_at IS NULL AND uns.dismissed_at IS NULL))
-  
+
   UNION ALL
-  
+
   SELECT
     n.id,
     n.title,
@@ -52,5 +52,5 @@ get-unread-notifications: |-
   AND (n.expires_at IS NULL OR n.expires_at > NOW())
   AND n.status = 'ACTIVE'
   AND (uns.id IS NULL OR (uns.read_at IS NULL AND uns.dismissed_at IS NULL))
-  
+
   ORDER BY created_at DESC
