@@ -34,8 +34,6 @@ public class RedisNotificationListener implements NotificationListener {
                     notificationSerializationPair) {
 
         List<ChannelTopic> topics = List.of(notificationChannelTopic);
-        ReactiveRedisMessageListenerContainer listenerContainer =
-                new ReactiveRedisMessageListenerContainer(connectionFactory);
         RedisSerializationContext.SerializationPair<String> channelPair =
                 notificationChannelSerializationPair;
         RedisSerializationContext.SerializationPair<Notification> notificationPair =
@@ -46,7 +44,10 @@ public class RedisNotificationListener implements NotificationListener {
                 Flux.defer(
                                 () ->
                                         Flux.usingWhen(
-                                                Mono.fromSupplier(() -> listenerContainer),
+                                                Mono.fromSupplier(
+                                                        () ->
+                                                                new ReactiveRedisMessageListenerContainer(
+                                                                        connectionFactory)),
                                                 container ->
                                                         container
                                                                 .receive(
@@ -68,6 +69,9 @@ public class RedisNotificationListener implements NotificationListener {
     @Override
     public Flux<NotificationResponse> listen(User user) {
         return notificationFlux
+                .doOnNext(
+                        notificationResponse ->
+                                log.info("Notification received: {}", notificationResponse))
                 .filter(notificationResponse -> shouldDeliver(notificationResponse, user))
                 .onBackpressureLatest();
     }
